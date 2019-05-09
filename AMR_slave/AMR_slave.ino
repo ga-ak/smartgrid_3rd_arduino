@@ -9,8 +9,8 @@
  * 
  * todo: 3. sd연결체크 부분 시리얼에 표시하는 것 대신 lcd에 표시하기
  *
- * 
  */
+ 
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <SD.h>
