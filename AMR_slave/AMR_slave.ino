@@ -5,9 +5,9 @@
  * todo: 1. loop안의 delay()가 2초있기 때문에 master가 slave의 답신을 기다리는 3초를 넘어가버림 delay() 쓰지않는 방법 탐색
  *          >> 방법1. 시간 측정법 https://geronimob.tistory.com/18 | 방법2. 쓰레드 이용방법 https://kocoafab.cc/tutorial/view/609
  * 
- * todo: 3. loop돌때마다 텍스트 파일을 열어줄 필요가 있는지? setup 에서 한 번만 열어줘도 될 것 같음
+ * todo: 2. loop돌때마다 텍스트 파일을 열어줄 필요가 있는지? setup 에서 한 번만 열어줘도 될 것 같음
  * 
- * todo: 2. sd연결체크 부분 시리얼에 표시하는 것 대신 lcd에 표시하기
+ * todo: 3. sd연결체크 부분 시리얼에 표시하는 것 대신 lcd에 표시하기
  *
  * 
  */
