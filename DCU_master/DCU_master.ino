@@ -10,6 +10,8 @@ int slave_list_size = sizeof(slave_list) / sizeof(slave_list[0]);
 void setup() {
   Serial.begin(9600);
   mySerial.begin(9600);
+  Serial.print("slave_list_size : ");
+  Serial.println(slave_list_size);
 }
 int i = 0;
 void loop() {
@@ -35,6 +37,8 @@ void request() {
       if(start - millis() < timeout) {
         if(mySerial.find("resp")) {
           tempStr = mySerial.readStringUntil('\n');
+          Serial.print(slave_list[i]);
+          Serial.print(" received!! : ");
           Serial.println(tempStr);
           break;                          
         }

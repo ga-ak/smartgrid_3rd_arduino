@@ -3,18 +3,20 @@
  * 
  * 
  */
-
+#include <SoftwareSerial.h>
 #include <SPI.h>
 #include <SD.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
+SoftwareSerial mySerial(2, 3);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 const int chipSelect = 4; //SD카드 모듈에서 cs핀 부분
 
 File myFile;
 String fileName = "filetest.txt";
+char AMRid = '1';  // todo: 각 슬레이브에 아이디 지정해주기
 
 String data = "";
 int PowerData = 0;
@@ -23,10 +25,11 @@ int totalData = data.toInt();
 String ReadData = "";
 String cut = "//";
 
-int TD = 0;
+int AD = 0;
 int ND = 0;
 String AccData = "AccData:";
 String NowData = "NowData:";
+
 
 void setup() {
   Serial.begin(9600);
@@ -57,16 +60,15 @@ void loop() {
   myFile = SD.open(fileName);
   ReadData = readData();
 
-  TD = totalSumSplit(ReadData,cut);
+  AD = totalSumSplit(ReadData,cut);
   ND = NowSplit(ReadData,cut);
 
-  lcdView(0,AccData,TD);
+  RequestIdFind(AMRid, AD, ND); // todo: master의 요청이 들어오면 값 전송하기
+  lcd.clear();
+  lcdView(0,AccData,AD);
   lcdView(1,NowData,ND);
 
 }
-
-// todo: 각 슬레이브에 아이디 지정해주기
-// todo: master의 요청이 들어오면 값 전송하기
 
 
 //SD카드 연결체크
@@ -103,7 +105,7 @@ void writeData(String intotalData, String indata) {
   }
 }
 
-// 저장된 데이터 읽기
+//저장된 데이터 읽기
 String readData() { 
   int data = 0;
   String total = "";
@@ -131,35 +133,44 @@ int totalSumSplit(String sData, String sSeparator) {
   int nGetIndex = 0 ;
 
   String totalSum = "";
-
   String sCopy = sData;
 
     nGetIndex = sCopy.indexOf(sSeparator);
-
+    
     if (-1 != nGetIndex){
-
       totalSum = sCopy.substring(0, nGetIndex);    
     }  
   return totalSum.toInt();
 }
 
-//현재 데이터 잘라오기
+//현재데이터 잘라오기
 int NowSplit(String sData, String sSeparator) {
   int nCount = 0;
   int nGetIndex = 0 ;
   int nGetIndex2 = 0 ;
   
   String now = "";
-
   String sCopy = sData;
   
     nGetIndex = sCopy.indexOf(sSeparator);
     nGetIndex2 = sCopy.indexOf(sSeparator,nGetIndex+2);
   
     if (-1 != nGetIndex){
-      
       now = sCopy.substring(nGetIndex+2,nGetIndex2);
-
     }  
   return now.toInt();
+}
+
+//master의 요청이 들어오면 값 전송하기
+void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
+  if(mySerial.available()) {
+    if(mySerial.find("req")){
+      if((char)mySerial.read() == amrId) {
+        mySerial.print("resp");
+      mySerial.print(ADvalue);
+      mySerial.print("/");
+      mySerial.println(NDvalue);
+      }
+    }
+  }
 }
