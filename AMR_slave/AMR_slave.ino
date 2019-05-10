@@ -55,8 +55,8 @@ void setup() {
 void loop() {
   
   // todo: 전류 측정하기 (테스트용으로 가변저항값이 저장되게 해놓음)
-  currentRMS = getCorriente();
-  power = 230.0 * currentRMS;
+  currentRMS = getCorriente(); //전류측정
+  power = 230.0 * currentRMS;  //전력계산
   /*------------------------------------------------------------------------------------------------------------- todo: 1 */
   delay(1000);
 
