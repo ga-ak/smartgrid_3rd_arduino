@@ -16,7 +16,7 @@ void loop() {
   Serial.println("connected!");
   
   request();
-  delay(1000);
+  //delay(1000);
 }
 
 // todo: 특정 slave 한테서 데이터 요구
@@ -34,9 +34,7 @@ void request() {
     while(1) {
       long current = millis();
       if(current - start < timeout) {
-        Serial.println(start);
-        Serial.println(current);
-        Serial.println("------");
+        
         if(mySerial.find("resp")) {
           tempStr = mySerial.readStringUntil('\n');
           Serial.println(tempStr);
