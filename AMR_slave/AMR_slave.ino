@@ -61,12 +61,11 @@ void loop() {
   delay(1000);
 
   // todo: 측정값 sd카드에 저장하기
-  totalData += power;
+  totalPower += power;
   
   myFile = SD.open(fileName, O_READ | O_WRITE | O_CREAT | O_READ);
-  writeData(String(totalData), String(power));
-
-  // todo: 저장되어 있는 값 lcd로 출력하기
+  writeData(String(totalPower), String(power)); 
+   /*------------------------------------------------------------------------------------------------------------- todo: 1 */
   delay(1000);
   
   myFile = SD.open(fileName);
@@ -75,7 +74,10 @@ void loop() {
   AD = totalSumSplit(ReadData,cut);
   ND = NowSplit(ReadData,cut);
 
-  RequestIdFind(AMRid, AD, ND); // todo: master의 요청이 들어오면 값 전송하기
+  // todo: master의 요청이 들어오면 값 전송하기
+  RequestIdFind(AMRid, AD, ND); 
+  
+  // todo: 저장되어 있는 값 lcd로 출력하기
   lcd.clear();
   lcdView(0,AccData,AD);
   lcdView(1,NowData,ND);
@@ -108,8 +110,7 @@ void lcdView(int Cursor, String view, int value){
 
 
 //데이터 저장
-void writeData(String intotalData, String indata) {
-  
+void writeData(String intotalData, String indata) { 
   if (myFile) {
     myFile.println(intotalData);
     myFile.println(indata);
