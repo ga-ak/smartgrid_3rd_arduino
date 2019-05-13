@@ -25,15 +25,12 @@ File myFile;
 String fileName = "filetest.txt";
 char AMRid = '1';  // todo: 각 슬레이브에 아이디 지정해주기
 
-const float FACTOR = 30; //30A/1V
+const float FACTOR = 100;
 const float multiplier = 0.06257;
 
 float currentRMS = 0;
 float power = 0;
-int totalPower = power;
-
-String ReadData = "";
-String cut = "//";
+int totalPower;
 
 int AD = 0;
 int ND = 0;
@@ -50,40 +47,38 @@ void setup() {
   lcd.begin();
   lcd.clear();
   InitializeSDcard();
+  
+  totalPower = readData().toInt();
 }
+
+long startTime = millis();
 
 void loop() {
   
+  long loopTime = millis();
+  Serial.println(loopTime);
   // todo: 전류 측정하기 (테스트용으로 가변저항값이 저장되게 해놓음)
   currentRMS = getCorriente(); //전류측정
   power = 230.0 * currentRMS;  //전력계산
   /*------------------------------------------------------------------------------------------------------------- todo: 1 */
-  delay(1000);
 
   // todo: 측정값 sd카드에 저장하기
   totalPower += power;
-  
-  myFile = SD.open(fileName, O_READ | O_WRITE | O_CREAT | O_READ);
-  writeData(String(totalPower), String(power)); 
-   /*------------------------------------------------------------------------------------------------------------- todo: 1 */
-  delay(1000);
-  
-  myFile = SD.open(fileName);
-  ReadData = readData();
+ 
+  writeData(String(totalPower));
 
-  AD = totalSumSplit(ReadData,cut);
-  ND = NowSplit(ReadData,cut);
-
-  // todo: master의 요청이 들어오면 값 전송하기
-  RequestIdFind(AMRid, AD, ND); 
-  
   // todo: 저장되어 있는 값 lcd로 출력하기
+  delay(1000);
+
+  AD = readData().toInt();
+  ND = power;
+
+  RequestIdFind(AMRid, AD, ND); // todo: master의 요청이 들어오면 값 전송하기
   lcd.clear();
   lcdView(0,AccData,AD);
   lcdView(1,NowData,ND);
 
-}
-
+}// end of loop
 
 //SD카드 연결체크
 void InitializeSDcard() {
@@ -103,18 +98,18 @@ void InitializeSDcard() {
 
 //LCD화면출력
 void lcdView(int Cursor, String view, int value){
-  lcd.setCursor(0, Cursor); //커서 위치 지정
+  lcd.setCursor(0, Cursor);
   lcd.print(view); 
-  lcd.print(value); // 전력값 
+  lcd.print(value);
 }
 
 
 //데이터 저장
-void writeData(String intotalData, String indata) { 
+void writeData(String intotalData) {
+  myFile = SD.open(fileName, O_READ | O_WRITE | O_CREAT | O_READ);
   if (myFile) {
-    myFile.println(intotalData);
-    myFile.println(indata);
-    myFile.close(); 
+    myFile.println(intotalData);   
+    myFile.close();
   } else {
     Serial.println("error opening test.txt");
   }
@@ -122,58 +117,20 @@ void writeData(String intotalData, String indata) {
 
 //저장된 데이터 읽기
 String readData() { 
-  int data = 0;
+  int data = 0;   
   String total = "";
-
+  
+  myFile = SD.open(fileName);
   if (myFile) {
     while (myFile.available()) {
       data = myFile.read();
-
-      if (data != 10 && data != 13) {
-        total += (char)data;
-      } else {
-        total += '/';
-      }
+      total += (char)data;
     }
     myFile.close();
   } else {
     Serial.println("error opening datalog.txt");
   }
   return total;
-}
-
-//누적데이터 잘라오기
-int totalSumSplit(String sData, String sSeparator) {
-  int nCount = 0;
-  int nGetIndex = 0 ;
-
-  String totalSum = "";
-  String sCopy = sData;
-
-    nGetIndex = sCopy.indexOf(sSeparator);
-    
-    if (-1 != nGetIndex){
-      totalSum = sCopy.substring(0, nGetIndex);    
-    }  
-  return totalSum.toInt();
-}
-
-//현재데이터 잘라오기
-int NowSplit(String sData, String sSeparator) {
-  int nCount = 0;
-  int nGetIndex = 0 ;
-  int nGetIndex2 = 0 ;
-  
-  String now = "";
-  String sCopy = sData;
-  
-    nGetIndex = sCopy.indexOf(sSeparator);
-    nGetIndex2 = sCopy.indexOf(sSeparator,nGetIndex+2);
-  
-    if (-1 != nGetIndex){
-      now = sCopy.substring(nGetIndex+2,nGetIndex2);
-    }  
-  return now.toInt();
 }
 
 //master의 요청이 들어오면 값 전송하기
@@ -192,20 +149,21 @@ void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
 
 //전력측정
 float getCorriente(){
+  float voltage;
+  float corriente;
+  float sum = 0;
   long tiempo = millis();
-  long rawAdc = ads.readADC_Differential_0_1();
-  long minRaw = rawAdc;
-  long maxRaw = rawAdc;
+  int counter = 0;
 
   while(millis()-tiempo <1000){
-    rawAdc = ads.readADC_Differential_0_1();
-    maxRaw = maxRaw > rawAdc ? maxRaw : rawAdc;
-    minRaw = minRaw > rawAdc ? minRaw : rawAdc;
+    voltage = ads.readADC_Differential_0_1() * multiplier;
+    corriente = voltage * FACTOR;
+    corriente /= 1000.0;
+
+    sum += sq(corriente);
+    counter = counter + 1;
   }
 
-    maxRaw = maxRaw > minRaw ? maxRaw : minRaw;
-    float voltagePeak = maxRaw * multiplier / 1000;
-    float voltageRMS = voltagePeak * 00.70710678118;
-    float currentRMS = voltageRMS *FACTOR;
-    return(currentRMS);
+  corriente = sqrt(sum/counter);
+  return(corriente);
 }
