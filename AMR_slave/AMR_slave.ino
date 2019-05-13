@@ -14,6 +14,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Adafruit_ADS1015.h>
+#include <MsTimer2.h>
 
 SoftwareSerial mySerial(2, 3);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -40,41 +41,43 @@ String NowData = "NowData:";
 
 void setup() {
   Serial.begin(9600);
+  mySerial.begin(9600);
 
   ads.setGain(GAIN_TWO);  //±2.048V 1bit =0.0625mV
   ads.begin();
 
   lcd.begin();
   lcd.clear();
-  
+
   InitializeSDcard();
 
   totalPower = readData().toInt();
 }
 
+
 long startTime = millis();
-int count = 0;
+
 void loop() {
-  Serial.println(++count);
- // long loopTime = millis();
-//  Serial.println(loopTime);
+
+if(millis()-startTime <= 1000){
+  
   // todo: 전류 측정하기 (테스트용으로 가변저항값이 저장되게 해놓음)
   currentRMS = getCorriente(); //전류측정
   power = 230.0 * currentRMS;  //전력계산
-  /*------------------------------------------------------------------------------------------------------------- todo: 1 */
 
   // todo: 측정값 sd카드에 저장하기
-  totalPower += power;
+  totalPower += int(power);
 
   writeData(String(totalPower));
-
-  // todo: 저장되어 있는 값 lcd로 출력하기
-
+}
+  startTime = millis();
+  
   AD = readData().toInt();
-  ND = power;
-
+  ND = int(power);
+  
   RequestIdFind(AMRid, AD, ND); // todo: master의 요청이 들어오면 값 전송하기
 
+  // todo: 저장되어 있는 값 lcd로 출력하기
   lcd.clear();
   lcdView(0, AccData, AD);
   lcdView(1, NowData, ND);
@@ -134,15 +137,14 @@ String readData() {
   return total;
 }
 
+
 //master의 요청이 들어오면 값 전송하기
 void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
-  Serial.println("listening!");
   if (mySerial.available()) {
     Serial.println("received!");
-    if (mySerial.find("req")) {
-      
+    if (mySerial.find("req1")) {
+      Serial.println("ok");
       if ((char)mySerial.read() == amrId) {
-        Serial.println("req received!");
         mySerial.print("resp");
         mySerial.print(ADvalue);
         mySerial.print("/");
@@ -151,6 +153,7 @@ void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
     }
   }
 }
+
 
 //전력측정
 float getCorriente() {
