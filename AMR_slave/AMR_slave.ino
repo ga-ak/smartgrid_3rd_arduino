@@ -55,26 +55,35 @@ void setup() {
 }
 
 
-long startTime = millis();
+long startTime = 0 ;
 
 void loop() {
 
-if(millis()-startTime <= 1000){
-  
-  // todo: 전류 측정하기 (테스트용으로 가변저항값이 저장되게 해놓음)
-  currentRMS = getCorriente(); //전류측정
-  power = 230.0 * currentRMS;  //전력계산
+  long loopTime = millis();
 
-  // todo: 측정값 sd카드에 저장하기
-  totalPower += int(power);
+  if (loopTime - startTime <= 1000) {
 
-  writeData(String(totalPower));
-}
-  startTime = millis();
-  
+    // todo: 전류 측정하기
+    currentRMS = getCorriente(); //전류측정
+    power = 230.0 * currentRMS;  //전력계산
+
+    if (totalPower >= 0) {
+      totalPower += int(power);
+    } else {
+      totalPower = 0;
+    }
+
+    // todo: 측정값 sd카드에 저장하기
+    writeData(String(totalPower));
+
+  }
+  startTime = loopTime;
+
+  delay(10);
+
   AD = readData().toInt();
   ND = int(power);
-  
+
   RequestIdFind(AMRid, AD, ND); // todo: master의 요청이 들어오면 값 전송하기
 
   // todo: 저장되어 있는 값 lcd로 출력하기
@@ -109,14 +118,16 @@ void lcdView(int Cursor, String view, int value) {
 
 
 //데이터 저장
-void writeData(String intotalData) {
+void writeData(String IntotalData) {
   myFile = SD.open(fileName, O_READ | O_WRITE | O_CREAT | O_READ);
+
   if (myFile) {
-    myFile.println(intotalData);
+    myFile.println(IntotalData);
     myFile.close();
   } else {
     Serial.println("error opening test.txt");
   }
+
 }
 
 //저장된 데이터 읽기
@@ -142,9 +153,9 @@ String readData() {
 void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
   if (mySerial.available()) {
     Serial.println("received!");
-    if (mySerial.find("req1")) {
-      Serial.println("ok");
+    if (mySerial.find("req")) {
       if ((char)mySerial.read() == amrId) {
+        Serial.println("ok");
         mySerial.print("resp");
         mySerial.print(ADvalue);
         mySerial.print("/");
