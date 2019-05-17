@@ -24,19 +24,19 @@ const int chipSelect = 4; //SD카드 모듈에서 cs핀 부분
 
 File myFile;
 String fileName = "filetest.txt";
-char AMRid = '2';  // todo: 각 슬레이브에 아이디 지정해주기
+char AMRid = '1';  // todo: 각 슬레이브에 아이디 지정해주기
 
 const float FACTOR = 100;
-const float multiplier = 0.06257;
+const float multiplier = 0.0625F;
 
 float currentRMS = 0;
 float power = 0;
-int totalPower;
+int Cumulative_Power;
 
-int AD = 0;
-int ND = 0;
-String AccData = "AccData:";
-String NowData = "NowData:";
+int Cum = 0;
+int cur = 0;
+String Cum_Power = "CumPower:";
+String cur_power = "CurPower:";
 
 
 void setup() {
@@ -51,7 +51,7 @@ void setup() {
 
   InitializeSDcard();
 
-  totalPower = readData().toInt();
+  Cumulative_Power = readData().toInt();
 }
 
 
@@ -65,31 +65,31 @@ void loop() {
 
     // todo: 전류 측정하기
     currentRMS = getCorriente(); //전류측정
-    power = 230.0 * currentRMS;  //전력계산
+    power = 220.0 * currentRMS;  //전력계산
 
-    if (totalPower >= 0) {
-      totalPower += int(power);
+    if (Cumulative_Power >= 0) {
+      Cumulative_Power += int(power);
     } else {
-      totalPower = 0;
+      Cumulative_Power = 0;
     }
 
     // todo: 측정값 sd카드에 저장하기
-    writeData(String(totalPower));
+    writeData(String(Cumulative_Power));
 
   }
   startTime = loopTime;
 
   delay(10);
 
-  AD = readData().toInt();
-  ND = int(power);
+  Cum = readData().toInt();
+  cur = int(power);
 
-  RequestIdFind(AMRid, AD, ND); // todo: master의 요청이 들어오면 값 전송하기
+  RequestIdFind(AMRid, Cum, cur); // todo: master의 요청이 들어오면 값 전송하기
 
   // todo: 저장되어 있는 값 lcd로 출력하기
   lcd.clear();
-  lcdView(0, AccData, AD);
-  lcdView(1, NowData, ND);
+  lcdView(0, Cum_Power, Cum);
+  lcdView(1, cur_power, cur);
 
 }// end of loop
 
@@ -152,10 +152,8 @@ String readData() {
 //master의 요청이 들어오면 값 전송하기
 void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
   if (mySerial.available()) {
-    Serial.println("received!");
     if (mySerial.find("req")) {
       if ((char)mySerial.read() == amrId) {
-        Serial.println("ok");
         mySerial.print("resp");
         mySerial.print(ADvalue);
         mySerial.print("/");
