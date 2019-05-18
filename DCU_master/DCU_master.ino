@@ -4,12 +4,12 @@
 #include <ESP8266mDNS.h>
 #include <ArduinoJson.h>
 
+SoftwareSerial mySerial(13, 15);
+
 String Split(int, String, char, String *, String *);
 
-SoftwareSerial mySerial(13, 15);
 String slave_list[] = {"1", "2", "3"};
-
-int slave_list_size = sizeof(slave_list) / sizeof(slave_list[0]);  //배열 갯수
+int slave_list_size = sizeof(slave_list) / sizeof(slave_list[0]);
 
 
 void setup() {
@@ -27,10 +27,9 @@ void loop() {
   for (int i = 1; i <= slave_list_size; i++) {
     Split(i, AMRdata, cut, &sTemp, &sCopy);
 
-   int Cum_Power = sTemp.toInt();
-    
-    handleRoot(i, Cum_Power);
+    int Cum_Power = sTemp.toInt();
 
+    handleRoot(i, Cum_Power);
     AMRdata = sCopy;
   }
 
@@ -56,15 +55,12 @@ String request() {
 
         if (mySerial.find("resp")) {
           tempStr = mySerial.readStringUntil('\n');
-          //Serial.println(tempStr);
-
+          
           outAMRdata += tempStr + '/';
-
           break;
         }
       } else {
-        //Serial.print(slave_list[i]);
-        //Serial.println(" time out!");
+        outAMRdata += -1;
         break;
       }
     }
@@ -76,33 +72,30 @@ String request() {
 String Split(int id, String sData, char cSeparator, String *sTemp, String *sCopy) {
   int nGetIndex = 0 ;
   int nGetIndex2 = 0 ;
-  int nGetIndex3 = 0 ;
-  
+
   *sTemp = "";
   String  Copy = sData;
 
   nGetIndex = Copy.indexOf(cSeparator);
-  nGetIndex2 = Copy.indexOf(cSeparator, nGetIndex+1);
-  nGetIndex3 = Copy.indexOf(cSeparator, nGetIndex2+1);
-  
+  nGetIndex2 = Copy.indexOf(cSeparator, nGetIndex + 1);
+
   if (-1 != nGetIndex) {
     if (id == 1) {
       *sTemp = Copy.substring(0, nGetIndex);
-    } else if (id % 2 == 0) {
-      *sTemp = Copy.substring(nGetIndex + 1, nGetIndex2);
+      Copy = Copy.substring(nGetIndex + 1);
     } else {
-      *sTemp = Copy.substring(nGetIndex2,nGetIndex3);
+      *sTemp = Copy.substring(nGetIndex + 1, nGetIndex2);
+      Copy = Copy.substring(nGetIndex2 + 1);
     }
-    Copy = Copy.substring(nGetIndex + 1);
+
     *sCopy = Copy;
   }
 
 }
 
-
 //JSON Parsing하기
 void handleRoot(int id, int Cum_Power) {
-  StaticJsonBuffer<500> jsonBuffer;
+  StaticJsonBuffer<200> jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
 
   root["id"] = id;

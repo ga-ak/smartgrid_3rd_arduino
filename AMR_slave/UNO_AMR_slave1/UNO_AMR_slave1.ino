@@ -1,20 +1,9 @@
-/*
-   AMR_slave
-
-
-   todo: 1. loop안의 delay()가 2초있기 때문에 master가 slave의 답신을 기다리는 3초를 넘어가버림 delay() 쓰지않는 방법 탐색
-            >> 방법1. 시간 측정법 https://geronimob.tistory.com/18 | 방법2. 쓰레드 이용방법 https://kocoafab.cc/tutorial/view/609
-
-
-*/
-
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <SD.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Adafruit_ADS1015.h>
-#include <MsTimer2.h>
 
 SoftwareSerial mySerial(2, 3);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -29,20 +18,23 @@ char AMRid = '1';  // todo: 각 슬레이브에 아이디 지정해주기
 const float FACTOR = 100;
 const float multiplier = 0.0625F;
 
-float currentRMS = 0;
-float power = 0;
-int Cumulative_Power;
+double currentRMS = 0;
+double power = 0;
+long Cumulative_Power;
 
-int Cum = 0;
-int cur = 0;
-String Cum_Power = "CumPower:";
-String cur_power = "CurPower:";
+long Cum = 0;
+long cur = 0;
+String Cum_Power = "CumP:";
+String cur_power = "CurP:";
 
+int buttonApin = 7;
 
 void setup() {
   Serial.begin(9600);
   mySerial.begin(9600);
 
+  pinMode(buttonApin, INPUT_PULLUP);
+  
   ads.setGain(GAIN_TWO);  //±2.048V 1bit =0.0625mV
   ads.begin();
 
@@ -67,9 +59,10 @@ void loop() {
     currentRMS = getCorriente(); //전류측정
     power = 220.0 * currentRMS;  //전력계산
 
-    if (Cumulative_Power >= 0) {
+    //버튼으로 누적전력 초기화
+    if (digitalRead(buttonApin) == HIGH) {
       Cumulative_Power += int(power);
-    } else {
+    } else if (digitalRead(buttonApin) == LOW) {
       Cumulative_Power = 0;
     }
 
@@ -78,11 +71,11 @@ void loop() {
 
   }
   startTime = loopTime;
-
+  Serial.println(Cumulative_Power);
   delay(10);
 
   Cum = readData().toInt();
-  cur = int(power);
+  cur = long(power);
 
   RequestIdFind(AMRid, Cum, cur); // todo: master의 요청이 들어오면 값 전송하기
 
@@ -110,7 +103,7 @@ void InitializeSDcard() {
 }
 
 //LCD화면출력
-void lcdView(int Cursor, String view, int value) {
+void lcdView(int Cursor, String view, long value) {
   lcd.setCursor(0, Cursor);
   lcd.print(view);
   lcd.print(value);
@@ -132,7 +125,7 @@ void writeData(String IntotalData) {
 
 //저장된 데이터 읽기
 String readData() {
-  int data = 0;
+  long data = 0;
   String total = "";
 
   myFile = SD.open(fileName);
@@ -150,7 +143,7 @@ String readData() {
 
 
 //master의 요청이 들어오면 값 전송하기
-void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
+void RequestIdFind(char amrId, long ADvalue, long NDvalue) {
   if (mySerial.available()) {
     if (mySerial.find("req")) {
       if ((char)mySerial.read() == amrId) {
@@ -165,10 +158,10 @@ void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
 
 
 //전력측정
-float getCorriente() {
-  float voltage;
-  float corriente;
-  float sum = 0;
+double getCorriente() {
+  double voltage;
+  double corriente;
+  double sum = 0;
   long tiempo = millis();
   int counter = 0;
 
