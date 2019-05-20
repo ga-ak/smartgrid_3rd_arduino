@@ -34,6 +34,9 @@ void request() {
     while(1) {
       long current = millis();
       if(current - start < timeout) {
+        Serial.println(start);
+        Serial.println(current);
+        Serial.println("------");
         if(mySerial.find("resp")) {
           tempStr = mySerial.readStringUntil('\n');
           Serial.println(tempStr);
