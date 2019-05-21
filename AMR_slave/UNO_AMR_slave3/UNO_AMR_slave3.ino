@@ -3,31 +3,28 @@
 #include <SD.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <Adafruit_ADS1015.h>
 
 SoftwareSerial mySerial(2, 3);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-Adafruit_ADS1015 ads;
 
 const int chipSelect = 4; //SD카드 모듈에서 cs핀 부분
 
 File myFile;
 String fileName = "filetest.txt";
-char AMRid = '2';  // todo: 각 슬레이브에 아이디 지정해주기
+char AMRid = '3';  // todo: 각 슬레이브에 아이디 지정해주기
 
-const float FACTOR = 100;
-const float multiplier = 0.0625F;
-
-double currentRMS = 0;
-double power = 0;
 long Cumulative_Power;
 
-long Cum = 0;
-long cur = 0;
+int Cum = 0;
+int cur = 0;
 String Cum_Power = "CumP:";
 String cur_power = "CurP:";
 
+int analogPin = 0;
 int buttonApin = 7;
+
+int sensor = 0;
+
 
 void setup() {
   Serial.begin(9600);
@@ -35,38 +32,36 @@ void setup() {
 
   pinMode(buttonApin, INPUT_PULLUP);
 
-  ads.setGain(GAIN_TWO);  //±2.048V 1bit =0.0625mV
-  ads.begin();
-
   lcd.begin();
   lcd.clear();
 
   InitializeSDcard();
 
   Cumulative_Power = readData().toInt();
+
 }
 
 
 void loop() {
-  
-    // todo: 전류 측정하기
-    currentRMS = getCorriente(); //전류측정
-    power = 220.0 * currentRMS;  //전력계산
 
-     //버튼으로 누적전력 초기화
+    // todo: 전류 측정하기대신 가변저항 값으로 변환
+    sensor = analogRead(analogPin);
+    delay(1000);
+    
+    //버튼으로 누적전력 초기화
     if (digitalRead(buttonApin) == HIGH) {
-      Cumulative_Power += int(power);
+      Cumulative_Power += sensor;
     } else if (digitalRead(buttonApin) == LOW) {
       Cumulative_Power = 0;
     }
-
-    // todo: 측정값 sd카드에 저장하기
-    writeData(String(Cumulative_Power));
+    
+  // todo: 측정값 sd카드에 저장하기
+  writeData(String(Cumulative_Power));
 
   delay(10);
 
   Cum = readData().toInt();
-  cur = long(power);
+  cur = sensor;
 
   RequestIdFind(AMRid, Cum, cur); // todo: master의 요청이 들어오면 값 전송하기
 
@@ -94,7 +89,7 @@ void InitializeSDcard() {
 }
 
 //LCD화면출력
-void lcdView(int Cursor, String view, long value) {
+void lcdView(int Cursor, String view, int value) {
   lcd.setCursor(0, Cursor);
   lcd.print(view);
   lcd.print(value);
@@ -134,13 +129,13 @@ String readData() {
 
 
 //master의 요청이 들어오면 값 전송하기
-void RequestIdFind(char amrId, long ADvalue, long NDvalue) {
+void RequestIdFind(char amrId, int ADvalue, int NDvalue) {
   if (mySerial.available()) {
     Serial.write(mySerial.read());
     Serial.println();
     if (mySerial.find("req")) {
       if ((char)mySerial.read() == amrId) {
-                Serial.println("ok");
+        Serial.println("ok");
         mySerial.print("resp");
         mySerial.print(ADvalue);
         mySerial.print("/");
@@ -150,26 +145,4 @@ void RequestIdFind(char amrId, long ADvalue, long NDvalue) {
       }
     }
   }
-}
-
-
-//전력측정
-double getCorriente() {
-  double voltage;
-  double corriente;
-  double sum = 0;
-  long tiempo = millis();
-  int counter = 0;
-
-  while (millis() - tiempo < 1000) {
-    voltage = ads.readADC_Differential_0_1() * multiplier;
-    corriente = voltage * FACTOR;
-    corriente /= 1000.0;
-
-    sum += sq(corriente);
-    counter = counter + 1;
-  }
-
-  corriente = sqrt(sum / counter);
-  return (corriente);
 }

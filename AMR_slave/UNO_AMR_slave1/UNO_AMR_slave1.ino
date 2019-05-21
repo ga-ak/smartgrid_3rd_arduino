@@ -47,14 +47,8 @@ void setup() {
 }
 
 
-long startTime = 0 ;
-
 void loop() {
-
-  long loopTime = millis();
-
-  if (loopTime - startTime <= 1000) {
-
+  
     // todo: 전류 측정하기
     currentRMS = getCorriente(); //전류측정
     power = 220.0 * currentRMS;  //전력계산
@@ -69,13 +63,10 @@ void loop() {
     // todo: 측정값 sd카드에 저장하기
     writeData(String(Cumulative_Power));
 
-  }
-  startTime = loopTime;
-  Serial.println(Cumulative_Power);
-  delay(10);
-
   Cum = readData().toInt();
   cur = long(power);
+
+   //delay(100);
 
   RequestIdFind(AMRid, Cum, cur); // todo: master의 요청이 들어오면 값 전송하기
 
@@ -145,8 +136,11 @@ String readData() {
 //master의 요청이 들어오면 값 전송하기
 void RequestIdFind(char amrId, long ADvalue, long NDvalue) {
   if (mySerial.available()) {
+    Serial.write(mySerial.read());
+    Serial.println();
     if (mySerial.find("req")) {
       if ((char)mySerial.read() == amrId) {
+        Serial.println("ok");
         mySerial.print("resp");
         mySerial.print(ADvalue);
         mySerial.print("/");
